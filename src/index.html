@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+    <title>Text Editor MK-I</title>
+    <link rel="stylesheet" href="index.css">
+    <script src="lib/codemirror.js"></script>
+    <link rel="stylesheet" href="lib/codemirror.css">
+    <script src="mode/markdown.js"></script>
+</head>
+<body>
+  
+  <h1 id="heading"> Text Editor MK-I</h1>
+
+  <div id="componentWrapper">
+    <div id="documentList" class="tabs">
+
+    </div>
+
+    <div id="inputMD"></div>
+
+    <div id="preview"></div>
+
+  </div>
+
+  <script>
+    const electron = require('electron');
+    const { ipcRenderer } = electron;
+
+    const remote = electron.remote;
+
+    var dialog = remote.dialog;
+    var currWindow = remote.getCurrentWindow();   
+
+    const codeMirror = CodeMirror(document.getElementById("inputMD"),{
+        lineNumbers: true
+    });
+
+    let currSessionID = 0;
+
+    const docList = document.getElementById('documentList');
+
+    addNewDocument(currSessionID.toString());
+
+    codeMirror.setSize("100%", "100%");
+
+    //I/O
+    codeMirror.on('change', (event) => {
+        let value = codeMirror.getValue();
+        ipcRenderer.send('input:sent', value);
+    });
+
+    ipcRenderer.on('output:received', (event, value) =>{
+        document.getElementById("preview").innerHTML = value;
+        console.log(codeMirror);
+    });
+
+    //Dialogs handler
+    ipcRenderer.on('saveDialog:show', (event) => {
+      let saveDialogOption = DialogOption;
+      saveDialogOption += {title: "Save As...", buttonLabel: 'Save'};
+        dialog.showSaveDialog(currWindow, DialogOption, (filePath)=>{
+          console.log(filePath);
+          ipcRenderer.send('filePathSave:sent', filePath);
+        });
+    });
+
+    ipcRenderer.on('openDialog:show', (event) => {
+      let openDialogOption = DialogOption;
+      openDialogOption += {title: "Open...", buttonLabel: 'Open'};
+        dialog.showOpenDialog(currWindow, openDialogOption, (filePath)=>{
+          console.log(filePath.toString());
+          ipcRenderer.send('filePathOpen:sent', filePath.toString());
+        });
+    });
+
+    ipcRenderer.on('setupCodeMirror:sent', (event, value) => {
+      codeMirror.setValue(value);
+    });
+
+    //Change between docs
+    document.querySelector("input").addEventListener("click", (event) => {
+      event.preventDefault();
+      currSessionID = event.target.getAttribute('id');
+      ipcRenderer.send('docListElement:sent', currSessionID);
+    });
+
+    ipcRenderer.on('docListElementDetail:sent', (event, filePath, value) => {
+      changeDocument(currSessionID, filePath);
+      codeMirror.setValue(value);
+    });
+
+
+    //setup for Save dialog 
+    var DialogOption = {      
+      defaultPath: process.platform === 'win32'? "D:\\" : "/home",
+      filters :[
+        {name: 'Markdown Text', extensions: ['.md']},
+        {name: 'All Files', extensions: ['*']}
+      ]
+    };
+
+    function addNewDocument(elementID) {      
+      let newElement1 = document.createElement("input");
+      let newElement2 = document.createElement("label");
+      newElement1.setAttribute('id', elementID);
+      newElement1.type = "radio";
+      newElement1.name = "radio-set";
+      newElement1.checked = true;
+      newElement1.className = "tab-selector-"+elementID.toString();
+      newElement2.htmlFor = elementID;
+      newElement2.className = "tab-label-"+elementID.toString();
+      newElement2.textContent = "<New Document>";
+      docList.appendChild(newElement1);
+      docList.appendChild(newElement2);
+    }
+
+    function changeDocument(elementID, filePath) {
+      let currButton = document.getElementById(elementID);
+      let regex = /.*\/(.*)$/;
+      let str = regex.exec(filePath);
+      currButton.textContent = str[1];
+      currButton.textContent = currButton.textContent.replace('.md', '');
+      console.log(currButton.textContent);
+    } 
+  </script>
+</body>
+</html>

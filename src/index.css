@@ -1,0 +1,99 @@
+html{
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+} 
+
+#heading{
+  flex: auto;
+  max-height: 10%;
+  width: 100%;
+  text-align: center;
+}
+
+#componentWrapper{
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  height: auto;
+  overflow: hidden;
+}
+
+#documentList{
+  flex: 1;
+}
+
+#inputMD{
+  overflow: auto;
+  height: 100%;
+  width: 40%;
+  flex: 2;
+  margin-right: 2%;
+  border: 1px solid #eee;
+}
+
+#preview{
+  overflow: auto;
+  height: auto;
+  width: 35%;
+  flex: 2;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+pre {
+  background-clip: border-box;
+  background: grey;
+  /* float: left; */
+}
+
+.tabs input{
+  position:absolute;
+  top:0;
+  left:0;
+  display:none;   
+}
+
+.tabs label{
+  display:block;
+  float:left;
+  position:relative;
+  padding:10px 0px;
+  line-height:1.5em;
+  width: 100%;
+  text-align:center;
+  color: #385c5b;
+  font-size:13px;
+  font-weight:bold;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  cursor:pointer;
+  text-shadow:1px 1px 1px rgba(255,255,255,0.3);
+  background:-moz-linear-gradient(top, #5ba4a4 0%, #4e8c8a 100%);
+  border-radius:5px 0px 0px 5px;
+  box-shadow:2px 0px 2px rgba(0,0,0,0.1),-2px 0 2px rgba(0,0,0,0.1)/*0.1*/
+}
+
+.tabs label:hover{
+  background:#5ba4a4; 
+}
+
+.tabs label:after{
+  content:"";
+  display:block;
+  position:absolute;
+  width:100%;
+  height:5px;
+  background:#fff;
+  left:0;
+  bottom:-5px;
+}
