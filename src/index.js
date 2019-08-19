@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, Menu, session } = require('electron');
 const fs = require('fs');
 const showdown = require('showdown');
 
-const converter = new showdown.Converter({tables: true, ghCodeBlocks: true, smoothLivePreview: true, simpleLineBreaks: true, ghCodeBlocks: true});
+const converter = new showdown.Converter({tables: true, ghCodeBlocks: true, smoothLivePreview: true, simpleLineBreaks: true});
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
@@ -13,12 +13,11 @@ if (require('electron-squirrel-startup')) { // eslint-disable-line global-requir
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
 
-let currfilePath = undefined;
-let currValue = '';
 let currSessionID = 0;
-
 let filePaths = [];
 let values = [];
+values[currSessionID] = '';
+let saved = [];
 
 
 const createWindow = () => {
@@ -74,39 +73,64 @@ app.on('activate', () => {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 
+//change preview cycle
 ipcMain.on('input:sent', (event, value) => {
-  currValue = value;
-  mainWindow.webContents.send('output:received', converter.makeHtml(currValue));
+  values[currSessionID] = value;
+  mainWindow.webContents.send('output:received', converter.makeHtml(values[currSessionID]));
 });
 
+//save cycle
 ipcMain.on('filePathSave:sent', (event, value) => {
-  fs.writeFileSync(value+'.md', currValue);
-  if(currfilePath === undefined) {    
-    currfilePath = value+".md";
-    console.log(currfilePath);
+  fs.writeFileSync(value+'.md', values[currSessionID]);
+  saved[currSessionID] = values[currSessionID];
+  if(filePaths[currSessionID] === undefined) {    
+    filePaths[currSessionID] = value+".md";
+    console.log(filePaths[currSessionID]);
   }
 });
 
+//open cycle
 ipcMain.on('filePathOpen:sent', (event, value) => {
-  currfilePath = value;
+  filePaths[currSessionID] = value;
   fs.readFile(value,"utf-8", (err, buff)=> {
-    console.log(buff);
-    currValue = buff;
-    mainWindow.webContents.send('setupCodeMirror:sent', currValue);
+    values[currSessionID] = saved[currSessionID] = buff;
+    mainWindow.webContents.send('setupCodeMirror:sent', values[currSessionID]);
     //mainWindow.webContents.send('output:received', converter.makeHtml(currValue));
-  })
+  });
 });
 
+//change between docs cycle
 ipcMain.on('docListElement:sent', (event, value) => {
-  currSessionID = value;
-  currValue = values[currSessionID];
-  mainWindow.webContents.send('docListElementDetail:sent', currfilePath, currValue);
+  currSessionID = parseInt(value);
+  console.log(currSessionID);
+  mainWindow.webContents.send('docListElementDetail:sent', filePaths[currSessionID], values[currSessionID]);
 });
 
+//quitMess cycle
+ipcMain.on('reactQuitMessage:sent', (event, response) => {
+  switch(response){
+    case 1:
+      break;
+    case 0:
+      app.quit(); 
+      break;
+  }
+})
+
+//menu template
 const menuTemplate = [
   {
     label: 'File', 
     submenu: [
+      {
+        label: 'New',
+        accelerator: 'Ctrl+N',
+        click(){
+          values[++currSessionID] = '';
+          mainWindow.webContents.send('newDocument:created', currSessionID, values[currSessionID]);
+        }
+      },
+
       {
         label: 'Open...',
         accelerator: 'Ctrl + O',
@@ -127,12 +151,13 @@ const menuTemplate = [
         label: 'Save',
         accelerator:'Ctrl + S',
         click() {
-          if(currfilePath === undefined)
+          if(filePaths[currSessionID] === undefined)
             mainWindow.webContents.send('saveDialog:show');
           else{
-            fs.writeFile(currfilePath, currValue, (err) => {
+            fs.writeFile(filePaths[currSessionID], values[currSessionID], (err) => {
               if(err) throw err;
-              console.log('Saved!');
+              saved[currSessionID] = values[currSessionID];
+              console.log('Saved!');              
             });
           }
         }
@@ -142,7 +167,12 @@ const menuTemplate = [
         label: 'Quit',
         accelerator: 'Ctrl + Q',
         click() {
-          app.quit();
+          if(checkDocuments())
+            app.quit();
+          else{
+            mainWindow.webContents.send('createQuitMessage:sent');
+          }
+            
         }
       }
 
@@ -163,5 +193,20 @@ if(process.env.NODE_ENV !== 'production'){
       }
     ]
   })
+}
+
+//check Docs when quitting the app
+function checkDocuments() {
+  for(var i = 0; i< values.length; ++i){    
+    if(filePaths[i] === undefined){
+      console.log('case 1');
+      return false;
+    }
+    if(saved[i] !== values[i]){
+      console.log('case 2');
+      return false;
+    }
+    return true;
+  }
 }
 
