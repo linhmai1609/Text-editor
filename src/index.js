@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, session } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const fs = require('fs');
 const showdown = require('showdown');
 
@@ -95,7 +95,6 @@ ipcMain.on('filePathOpen:sent', (event, value) => {
   fs.readFile(value,"utf-8", (err, buff)=> {
     values[currSessionID] = saved[currSessionID] = buff;
     mainWindow.webContents.send('setupCodeMirror:sent', values[currSessionID]);
-    //mainWindow.webContents.send('output:received', converter.makeHtml(currValue));
   });
 });
 
@@ -198,15 +197,9 @@ if(process.env.NODE_ENV !== 'production'){
 //check Docs when quitting the app
 function checkDocuments() {
   for(var i = 0; i< values.length; ++i){    
-    if(filePaths[i] === undefined){
-      console.log('case 1');
+    if(filePaths[i] === undefined || saved[i] !== values[i])
       return false;
-    }
-    if(saved[i] !== values[i]){
-      console.log('case 2');
-      return false;
-    }
-    return true;
   }
+  return true;
 }
 
