@@ -64,6 +64,7 @@
         dialog.showSaveDialog(currWindow, DialogOption, (filePath)=>{
           console.log(filePath);
           ipcRenderer.send('filePathSave:sent', filePath);
+          changeDocument(currSessionID, filePath);
         });
     });
 

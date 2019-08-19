@@ -30,6 +30,7 @@ body {
 
 #documentList{
   flex: 1;
+  overflow: auto;
 }
 
 #inputMD{
